@@ -3,88 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ISBNスキャンアプリ</title>
+    <title>ISBNスキャナー（診断モード）</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; text-align: center; background-color: #f0f0f0; margin: 0; padding: 20px; }
         main { max-width: 600px; margin: 0 auto; background: #fff; border-radius: 8px; padding: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         #reader { width: 100%; border-radius: 8px; overflow: hidden; }
-        #result { margin: 20px; font-size: 1.1em; font-weight: bold; color: #333; min-height: 2em; display: flex; align-items: center; justify-content: center; }
-        .loading { color: #007bff; }
-        .success { color: #28a745; }
-        .error { color: #dc3545; }
+        #result { margin: 20px; font-size: 1.1em; font-weight: bold; color: #28a745; min-height: 2em; }
     </style>
 </head>
 <body>
-
     <main>
-        <h1>ISBNスキャンアプリ</h1>
-        <p>下の枠内に書籍のバーコードをかざしてください。</p>
-
+        <h1>ISBNスキャナー（診断モード）</h1>
+        <p>下の枠内にバーコードをかざしてください。</p>
         <div id="reader"></div>
-
-        <div id="result"><p>処理待機中...</p></div>
+        <div id="result"></div>
     </main>
 
     <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
 
     <script>
-        // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-        // ↓↓↓ この文字列を、あなたがコピーしたGASのURLに書き換えてください！
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbyDSW3TWi-K2iprif138XaNzF6HsP51i6hdCsx7zVhpuvEM46fI2JY9Jqfp5xhhyUC_9g/exec';
-        // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+        alert('JavaScriptの読み込み開始'); // このアラートが表示されるか確認
 
         const resultElement = document.getElementById('result');
 
-        // スキャン成功時に実行されるメインの関数
         function onScanSuccess(decodedText, decodedResult) {
-            if (!decodedText.startsWith('978') && !decodedText.startsWith('979')) {
-                return; 
-            }
-
-            resultElement.innerHTML = `<p class="loading">記録中 (ISBN: ${decodedText})</p>`;
-            html5QrcodeScanner.pause();
-
-            const formData = new URLSearchParams();
-            formData.append('isbn', decodedText);
-
-            fetch(GAS_URL, {
-                method: 'POST',
-                body: formData,
-                mode: 'no-cors'
-            })
-            .then(() => {
-                resultElement.innerHTML = `<p class="success">記録しました！</p>`;
-            })
-            .catch(error => {
-                console.error('Fetch Error:', error);
-                resultElement.innerHTML = `<p class="error">通信エラーが発生しました。</p>`;
-            })
-            .finally(() => {
-                setTimeout(() => {
-                    resultElement.innerHTML = '<p>処理待機中...</p>';
-                    html5QrcodeScanner.resume();
-                }, 2000);
-            });
+            // スキャンが成功したら、スプレッドシートには送らず画面にISBNを表示するだけ
+            resultElement.textContent = `スキャン成功！: ${decodedText}`;
+            html5QrcodeScanner.pause(); // 連続スキャンを停止
+            setTimeout(() => {
+                html5QrcodeScanner.resume(); // 2秒後に再開
+            }, 2000);
         }
 
         function onScanFailure(error) {
+            // 何もしない
         }
 
-        const html5QrcodeScanner = new Html5QrcodeScanner(
-            "reader", 
-            { 
-                fps: 10,
-                qrbox: (viewfinderWidth, viewfinderHeight) => {
-                    const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-                    const qrboxSize = Math.floor(minEdge * 0.8);
-                    return { width: qrboxSize, height: qrboxSize / 2 };
-                }
-            }, 
-            false
-        );
-
-        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+        try {
+            const html5QrcodeScanner = new Html5QrcodeScanner(
+                "reader", 
+                { 
+                    fps: 10,
+                    qrbox: (viewfinderWidth, viewfinderHeight) => {
+                        const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+                        return { width: minEdge * 0.8, height: minEdge * 0.4 };
+                    }
+                }, 
+                false
+            );
+            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+        } catch (e) {
+            alert('カメラの起動中にエラーが発生しました: ' + e); // もしエラーがあれば表示
+        }
     </script>
-
 </body>
 </html>
