@@ -1,91 +1,215 @@
 <!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ISBNスキャナー</title>
+<html>
+  <head>
+    <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; text-align: center; background-color: #f0f0f0; margin: 0; padding: 20px; }
-        main { max-width: 600px; margin: 0 auto; background: #fff; border-radius: 8px; padding: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        #reader { width: 100%; border-radius: 8px; overflow: hidden; }
-        #result { margin: 20px; font-size: 1.1em; font-weight: bold; color: #333; min-height: 2em; display: flex; align-items: center; justify-content: center; }
-        .loading { color: #007bff; }
-        .success { color: #28a745; }
-        .error { color: #dc3545; }
+      #scanner-container {
+        position: relative;
+        width: 100%;
+        max-width: 640px;
+        margin: 5pt auto;
+      }
+      video {
+        width: 100%;
+        muted: true;
+        autoplay: true;
+        playsinline: true;
+      }
+      canvas.drawingBuffer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none; /* canvas上でのクリックを無効にする */
+      }
+      #book-info {
+        margin-top: 20px;
+        border: 1px solid #ccc;
+        padding: 15px;
+        border-radius: 8px;
+        display: none; /* 初期状態では非表示 */
+      }
+      #book-info p {
+        margin-bottom: 5px;
+      }
+      #bookImage {
+        max-width: 100px;
+        height: auto;
+        margin-bottom: 10px;
+      }
+      .button-group {
+        margin-top: 15px;
+        text-align: center;
+      }
+      .button-group button {
+        padding: 10px 20px;
+        margin: 0 5px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      #rescan-btn {
+        background-color: #007bff;
+        color: white;
+      }
+      #record-btn {
+        background-color: #28a745;
+        color: white;
+      }
+      #record-message {
+        margin-top: 10px;
+        font-weight: bold;
+      }
     </style>
-</head>
-<body>
-    <main>
-        <h1>ISBNスキャンアプリ</h1>
-        <p>下の枠内に書籍のバーコードをかざしてください。</p>
-        <div id="reader"></div>
-        <div id="result"><p>処理待機中...</p></div>
-    </main>
+  </head>
+  <body>
+    <div id="scanner-container"></div>
+    <div id="message"></div>
     
-    <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+    <div id="book-info">
+      <p><strong>ISBN:</strong> <span id="isbn"></span></p>
+      <p><strong>タイトル:</strong> <span id="title"></span></p>
+      <p><strong>書籍画像:</strong> <img id="bookImage" src="" alt="書籍画像"></p> 
+      <p><strong>著者:</strong> <span id="authors"></span></p>
+      <p><strong>出版社:</strong> <span id="publisher"></span></p>
+      <p><strong>出版日:</strong> <span id="publishedDate"></span></p>
+      <p><strong>説明:</strong> <span id="description"></span></p>
+      
+      <div class="button-group">
+        <button id="record-btn" style="display:none;">スプレッドシートに転記</button>
+        <button id="rescan-btn" style="display:none;">別のISBNコードを読み取る</button>
+      </div>
+      <div id="record-message"></div>
+    </div>
 
     <script>
-      // ページのHTMLがすべて準備できてから、中の処理を実行するおまじない
-      document.addEventListener('DOMContentLoaded', function() {
+      let scanCounts = {};
+      let scanAttempts = 0;
+      const maxScans = 7;
+      let currentBookData = null; // 現在表示されている書籍情報を保持する変数
 
-        // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-        // ↓↓↓ この文字列を、あなたがコピーしたGASのURLに書き換えてください！
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbyDSW3TWi-K2iprif138XaNzF6HsP51i6hdCsx7zVhpuvEM46fI2JY9Jqfp5xhhyUC_9g/exec';
-        // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+      function startScanner() {
+        scanCounts = {};
+        scanAttempts = 0;
+        document.getElementById("message").textContent = "ISBNコードをスキャンしてください...";
+        document.getElementById("book-info").style.display = "none"; // 書籍情報を非表示にする
+        document.getElementById("rescan-btn").style.display = "none";
+        document.getElementById("record-btn").style.display = "none";
+        document.getElementById("record-message").textContent = ""; // 転記メッセージをクリア
 
-        const resultElement = document.getElementById('result');
+        // 既存の書籍情報をクリア
+        document.getElementById("isbn").textContent = "";
+        document.getElementById("bookImage").src = "";
+        document.getElementById("title").textContent = "";
+        document.getElementById("authors").textContent = "";
+        document.getElementById("publisher").textContent = "";
+        document.getElementById("publishedDate").textContent = "";
+        document.getElementById("description").textContent = "";
 
-        function onScanSuccess(decodedText, decodedResult) {
-            if (!decodedText.startsWith('978') && !decodedText.startsWith('979')) {
-                return;
-            }
+        Quagga.init({
+          inputStream: {
+            name: "Live",
+            type: "LiveStream",
+            target: document.querySelector('#scanner-container'),
+            constraints: {
+              width: 640,
+              height: 480,
+              facingMode: "environment" // 背面カメラを優先
+            },
+          },
+          decoder: {
+            readers: ["ean_reader"]
+          },
+          locate: true // バーコードの位置をハイライト表示
+        }, function (err) {
+          if (err) {
+            console.error("Quagga initialization error:", err);
+            document.getElementById("message").textContent = "カメラの初期化に失敗しました。ページをリロードするか、カメラへのアクセスを許可してください。";
+            return;
+          }
+          Quagga.start();
+        });
+      }
 
-            resultElement.innerHTML = `<p class="loading">記録中 (ISBN: ${decodedText})</p>`;
-            html5QrcodeScanner.pause();
+      Quagga.onDetected(function (result) {
+        var code = result.codeResult.code;
+        if (code.startsWith("978") || code.startsWith("979")) { // ISBN-13のプレフィックス
+          scanCounts[code] = (scanCounts[code] || 0) + 1;
+          scanAttempts++;
 
-            const formData = new URLSearchParams();
-            formData.append('isbn', decodedText);
+          if (scanAttempts >= maxScans) {
+            Quagga.stop();
+            let mostFrequentCode = Object.keys(scanCounts).reduce((a, b) => scanCounts[a] > scanCounts[b] ? a : b);
+            document.getElementById("message").textContent = "ISBNコードを特定しました: " + mostFrequentCode;
+            google.script.run.withSuccessHandler(displayBookInfo).FetchData(mostFrequentCode);
+            // 転記ボタンと再スキャンボタンはdisplayBookInfoの中で表示される
+          } else {
+            document.getElementById("message").textContent = "スキャン中: " + scanAttempts + " / " + maxScans + "回";
+          }
+        } else {
+          document.getElementById("message").textContent = "無効なバーコードです。ISBNコードを読み取ってください。";
+        }
+      });
 
-            fetch(GAS_URL, {
-                method: 'POST',
-                body: formData,
-                mode: 'no-cors'
-            })
-            .then(() => {
-                resultElement.innerHTML = `<p class="success">記録しました！</p>`;
-            })
-            .catch(error => {
-                console.error('Fetch Error:', error);
-                resultElement.innerHTML = `<p class="error">通信エラーが発生しました。</p>`;
-            })
-            .finally(() => {
+      function displayBookInfo(bookData) {
+        if (bookData) {
+          currentBookData = bookData; // 書籍情報を保存
+          document.getElementById("isbn").textContent = bookData.isbn;
+          document.getElementById("bookImage").src = bookData.thumbnail || 'https://via.placeholder.com/100x150?text=No+Image'; // 画像がない場合の代替
+          document.getElementById("title").textContent = bookData.title;
+          document.getElementById("authors").textContent = bookData.authors;
+          document.getElementById("publisher").textContent = bookData.publisher;
+          document.getElementById("publishedDate").textContent = bookData.publishedDate;
+          document.getElementById("description").textContent = bookData.description;
+          document.getElementById("book-info").style.display = "block"; // 書籍情報を表示
+          document.getElementById("record-btn").style.display = "block"; // 転記ボタンを表示
+          document.getElementById("rescan-btn").style.display = "block"; // 別のISBNコードを読み取るボタンを表示
+        } else {
+          document.getElementById("message").textContent = "ISBNコードに対応する書籍情報が見つかりませんでした。";
+          document.getElementById("book-info").style.display = "none";
+          document.getElementById("record-btn").style.display = "none";
+          document.getElementById("rescan-btn").style.display = "block"; // 見つからない場合でも再スキャンは可能に
+          currentBookData = null;
+        }
+      }
+
+      // スプレッドシートに転記するボタンのクリックイベント
+      document.getElementById("record-btn").addEventListener("click", function() {
+        if (currentBookData) {
+          document.getElementById("record-message").textContent = "スプレッドシートに転記中...";
+          document.getElementById("record-message").style.color = "black"; // メッセージ色をリセット
+          google.script.run
+            .withSuccessHandler(function(success) {
+              if (success) {
+                document.getElementById("record-message").style.color = "green";
+                document.getElementById("record-message").textContent = "書籍情報をスプレッドシートに転記しました！";
+                // 転記成功後、スキャナーを再開するか、別の動作を促す
                 setTimeout(() => {
-                    resultElement.innerHTML = '<p>処理待機中...</p>';
-                    html5QrcodeScanner.resume();
-                }, 2000);
-            });
+                    document.getElementById("rescan-btn").click(); // 自動的に再スキャンを開始
+                }, 2000); // 2秒後に再スキャン開始
+              } else {
+                document.getElementById("record-message").style.color = "red";
+                document.getElementById("record-message").textContent = "転記に失敗しました。スクリプトの設定を確認してください。";
+              }
+            })
+            .withFailureHandler(function(error) {
+              document.getElementById("record-message").style.color = "red";
+              document.getElementById("record-message").textContent = "転記中にエラーが発生しました: " + error.message;
+            })
+            .recordBookInfo(currentBookData); // GASのrecordBookInfo関数を呼び出す
+        } else {
+          document.getElementById("record-message").style.color = "orange";
+          document.getElementById("record-message").textContent = "転記する書籍情報がありません。";
         }
-        
-        function onScanFailure(error) {
-            // スキャン失敗時は何もしない
-        }
+      });
 
-        const html5QrcodeScanner = new Html5QrcodeScanner(
-            "reader", 
-            { 
-                fps: 10,
-                qrbox: (viewfinderWidth, viewfinderHeight) => {
-                    const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-                    const qrboxSize = Math.floor(minEdge * 0.8);
-                    return { width: qrboxSize, height: qrboxSize / 2 };
-                }
-            }, 
-            false
-        );
+      document.getElementById("rescan-btn").addEventListener("click", function() {
+        startScanner();
+      });
 
-        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
-
-      }); // ここがおまじないの終わり
+      // 初期化
+      startScanner();
     </script>
-</body>
+  </body>
 </html>
