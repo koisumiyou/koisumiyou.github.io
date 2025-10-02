@@ -1,4 +1,4 @@
-on<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
@@ -18,47 +18,41 @@ on<!DOCTYPE html>
 
     <main>
         <h1>ISBNスキャンアプリ</h1>
-        <p>下の枠内に絵本のバーコードをかざしてください。</p>
-        
+        <p>下の枠内に書籍のバーコードをかざしてください。</p>
+
         <div id="reader"></div>
-        
+
         <div id="result"><p>処理待機中...</p></div>
     </main>
-    
+
     <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
 
     <script>
         // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
         // ↓↓↓ この文字列を、あなたがコピーしたGASのURLに書き換えてください！
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbyDSW3TWi-K2iprif138XaNzF6HsP51i6hdCsx7zVhpuvEM46fI2JY9Jqfp5xhhyUC_9g/exec';
+        const GAS_URL = 'https://script.google.com/macros/s/xxxxxxxxxxxxxxxxxxxxxxxxxxxx/exec';
         // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 
         const resultElement = document.getElementById('result');
 
         // スキャン成功時に実行されるメインの関数
         function onScanSuccess(decodedText, decodedResult) {
-            // 書籍のISBN形式か簡易的にチェック (先頭が978または979)
             if (!decodedText.startsWith('978') && !decodedText.startsWith('979')) {
-                return; // 書籍コードでなければ何もしない
+                return; 
             }
 
-            // 処理中のメッセージを表示
             resultElement.innerHTML = `<p class="loading">記録中 (ISBN: ${decodedText})</p>`;
-            
-            // 連続スキャンを防ぐため、一度スキャナーを停止
             html5QrcodeScanner.pause();
 
-            // GASにISBNコードを送信
             const formData = new URLSearchParams();
             formData.append('isbn', decodedText);
 
             fetch(GAS_URL, {
                 method: 'POST',
                 body: formData,
-                mode: 'no-cors' // CORSポリシーを回避
+                mode: 'no-cors'
             })
             .then(() => {
-                // no-corsモードではレスポンス内容が取得できないため、成功したと仮定してメッセージを表示
                 resultElement.innerHTML = `<p class="success">記録しました！</p>`;
             })
             .catch(error => {
@@ -66,35 +60,29 @@ on<!DOCTYPE html>
                 resultElement.innerHTML = `<p class="error">通信エラーが発生しました。</p>`;
             })
             .finally(() => {
-                // 2秒後に再度スキャンを再開
                 setTimeout(() => {
                     resultElement.innerHTML = '<p>処理待機中...</p>';
                     html5QrcodeScanner.resume();
                 }, 2000);
             });
         }
-        
+
         function onScanFailure(error) {
-          // スキャン失敗時はコンソールにログを出すだけにする
-          // console.warn(`Code scan error = ${error}`);
         }
 
-        // バーコードリーダーのインスタンスを作成
         const html5QrcodeScanner = new Html5QrcodeScanner(
-            "reader", // バーコードリーダーを表示するdivのID
+            "reader", 
             { 
-                fps: 10, // 1秒あたりのスキャン回数
+                fps: 10,
                 qrbox: (viewfinderWidth, viewfinderHeight) => {
-                    // スキャン領域をビューファインダーの幅の80%にする
                     const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
                     const qrboxSize = Math.floor(minEdge * 0.8);
-                    return { width: qrboxSize, height: qrboxSize / 2 }; // バーコードは横長なので高さを半分に
+                    return { width: qrboxSize, height: qrboxSize / 2 };
                 }
             }, 
-            false // verbose (詳細ログ) はオフ
+            false
         );
 
-        // スキャナーを起動
         html5QrcodeScanner.render(onScanSuccess, onScanFailure);
     </script>
 
