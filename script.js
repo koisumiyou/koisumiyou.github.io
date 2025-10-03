@@ -93,9 +93,15 @@ document.getElementById('scanTitleBtn').addEventListener('click', async () => {
     }
 });
 
-// script.js の続き
-
-// script.js の中の関数を書き換え
+// タイトル読み取れない場合の手入力
+document.getElementById('manualSearchBtn').addEventListener('click', () => {
+    const title = document.getElementById('manualTitle').value;
+    if (title) {
+        searchBook(`intitle:${title}`);
+    } else {
+        alert('タイトルを入力してください。');
+    }
+});
 
 // Google Books APIで本を検索する関数
 async function searchBook(query) {
