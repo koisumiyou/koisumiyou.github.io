@@ -1,14 +1,17 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-M">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>絵本管理アプリ</title>
-    <style> /* 簡単なデザイン */
-        body { font-family: sans-serif; text-align: center; }
+    <style>
+        body { font-family: sans-serif; text-align: center; max-width: 600px; margin: 0 auto; }
         video, canvas { max-width: 100%; border: 1px solid #ccc; }
-        #controls button { padding: 10px; font-size: 16px; margin: 5px; }
+        #controls button { padding: 10px; font-size: 16px; margin: 5px; cursor: pointer; }
         #result { margin-top: 20px; }
+        #manualInput { margin: 20px; padding: 10px; background-color: #f4f4f4; border-radius: 8px; }
+        #manualInput input { padding: 8px; font-size: 16px; width: 60%; }
+        #manualInput button { padding: 8px; }
     </style>
 </head>
 <body>
@@ -17,23 +20,25 @@
     <canvas id="canvas" style="display:none;"></canvas>
 
     <div id="controls">
-        <button id="scanBarcodeBtn">① バーコードをスキャン</button>
+        <button id="scanBarcodeBtn">① バーコードを撮影</button>
         <button id="scanIsbnBtn">② ISBN番号を撮影</button>
-        <button id="scanTitleBtn">③ タイトルを撮影</button>
+        <button id="scanTitleBtn">③ タイトルを撮影 (β版)</button>
     </div>
-    
+
+    <div id="manualInput">
+        <p>自動で読み取れない場合は、こちらに入力してください。</p>
+        <input type="text" id="manualTitle" placeholder="絵本のタイトルを入力">
+        <button id="manualSearchBtn">手動で検索</button>
+    </div>
 
     <div id="result">
         <p id="status">カメラを起動してスキャン方法を選んでください。</p>
         <div id="bookInfo"></div>
     </div>
-    
-    <div id="manualInput">
-    <p>自動で読み取れない場合は、こちらに入力してください。</p>
-    <input type="text" id="manualTitle" placeholder="絵本のタイトルを入力">
-    <button id="manualSearchBtn">手動で検索</button>
-</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@zxing/library@latest"></script> <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script> <script src="script.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@zxing/library@latest"></script>
+    <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
+    
+    <script src="script.js"></script>
 </body>
 </html>
