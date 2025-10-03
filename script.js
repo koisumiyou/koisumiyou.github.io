@@ -27,21 +27,35 @@ async function startCamera() {
 startCamera(); // ページを開いたらカメラを起動
 // script.js の続き
 
-document.getElementById('scanBarcodeBtn').addEventListener('click', () => {
-    statusEl.textContent = 'バーコードを探しています...';
-    const codeReader = new ZXing.BrowserMultiFormatReader();
-    codeReader.decodeFromVideoDevice(undefined, 'video', (result, err) => {
-        if (result) {
-            const isbn = result.getText();
-            // ISBNは978から始まることが多い
-            if (isbn.startsWith('978')) {
-                statusEl.textContent = `バーコード発見: ${isbn}`;
-                codeReader.reset(); // スキャンを停止
-                video.pause();
-                searchBook(`isbn:${isbn}`);
-            }
+// script.jsのバーコードスキャン部分を修正
+
+document.getElementById('scanBarcodeBtn').addEventListener('click', async () => {
+    statusEl.textContent = 'バーコードを撮影します...';
+    
+    // ① まず映像から静止画を撮る
+    const canvas = document.getElementById('canvas');
+    const context = canvas.getContext('2d');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // ② その静止画からバーコードを探す
+    try {
+        const codeReader = new ZXing.BrowserMultiFormatReader();
+        const result = await codeReader.decodeFromCanvas(canvas);
+        const isbn = result.getText();
+
+        if (isbn && isbn.startsWith('978')) {
+            statusEl.textContent = `バーコード発見: ${isbn}`;
+            video.pause();
+            searchBook(`isbn:${isbn}`);
+        } else {
+            statusEl.textContent = 'バーコードの読み取りに失敗しました。';
         }
-    });
+    } catch (err) {
+        console.error('バーコード認識エラー:', err);
+        statusEl.textContent = 'バーコードが見つかりませんでした。';
+    }
 });
 
 // script.js の続き
