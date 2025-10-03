@@ -25,7 +25,6 @@ async function startCamera() {
     }
 }
 startCamera(); // ページを開いたらカメラを起動
-// script.js の続き
 
 // script.jsのバーコードスキャン部分を修正
 
