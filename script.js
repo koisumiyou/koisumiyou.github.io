@@ -43,6 +43,37 @@ async function startCamera() {
 }
 
 /**
+ * Tesseract.jsで文字認識を行う共通関数（画像の前処理機能付き）
+ */
+async function recognizeText(lang, options = {}) {
+    const canvas = document.getElementById('canvas');
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    // 映像をキャンバスに描画
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // --- ここから画像の前処理 ---
+    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+
+    // 白黒（グレースケール）化
+    for (let i = 0; i < data.length; i += 4) {
+        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+        data[i]     = avg; // red
+        data[i + 1] = avg; // green
+        data[i + 2] = avg; // blue
+    }
+    context.putImageData(imageData, 0, 0);
+    // --- 前処理ここまで ---
+
+    // 前処理した画像でOCRを実行
+    const { data: { text } } = await Tesseract.recognize(canvas, lang, options);
+    return text;
+}
+
+/**
  * バーコードスキャンを処理する
  */
 async function handleBarcodeScan() {
@@ -73,24 +104,31 @@ async function handleBarcodeScan() {
 }
 
 /**
- * ISBN番号のOCRを処理する
+ * ISBN番号のOCRを処理する（チェック処理を強化）
  */
 async function handleIsbnOcr() {
     statusEl.textContent = 'ISBN番号を撮影・解析中...';
     try {
-        const text = await recognizeText('eng', { tessedit_char_whitelist: '0123456789-' });
-        const isbn = text.replace(/[^0-9]/g, '');
-        if (isbn.length >= 10) {
+        const text = await recognizeText('eng', { tessedit_char_whitelist: '0123456789-X' }); // Xも許可
+        
+        // ハイフンなどを除去
+        const cleanedText = text.replace(/[-\s]/g, ''); 
+        
+        // ISBN-13 (978... or 979...) または ISBN-10 を探す
+        const match = cleanedText.match(/(97[89]\d{10}|\d{9}[\dX])/); 
+        
+        if (match) {
+            const isbn = match[0];
             statusEl.textContent = `ISBN番号発見: ${isbn}`;
             video.pause();
             searchBook(`isbn:${isbn}`);
         } else {
             statusEl.textContent = 'ISBN番号の読み取りに失敗しました。もう一度お試しください。';
-            video.play(); // ★追加: 失敗時にカメラを再起動
+            video.play();
         }
     } catch (error) {
         statusEl.textContent = 'OCR処理中にエラーが発生しました。もう一度お試しください。';
-        video.play(); // ★追加: 失敗時にカメラを再起動
+        video.play();
     }
 }
 
@@ -127,17 +165,7 @@ function handleManualSearch() {
     }
 }
 
-/**
- * Tesseract.jsで文字認識を行う共通関数
- */
-async function recognizeText(lang, options = {}) {
-    const context = canvas.getContext('2d');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const { data: { text } } = await Tesseract.recognize(canvas, lang, options);
-    return text;
-}
+
 
 /**
  * Google Books APIで本を検索する
