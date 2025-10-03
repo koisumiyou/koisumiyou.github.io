@@ -1,8 +1,8 @@
 // script.js
 
 // --- 初期設定 ---
-const GAS_WEB_APP_URL = 'ここにステップ0で取得したGASのURLを貼り付け';
-const GOOGLE_BOOKS_API_KEY = 'ここにステップ0で取得したAPIキーを貼り付け';
+const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyDSW3TWi-K2iprif138XaNzF6HsP51i6hdCsx7zVhpuvEM46fI2JY9Jqfp5xhhyUC_9g/exec';
+const GOOGLE_BOOKS_API_KEY = 'AIzaSyDOu12dAbLqmR6Z5ZrHRpLVp8sa3J1uLt0';
 
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
