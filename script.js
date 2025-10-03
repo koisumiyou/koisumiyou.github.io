@@ -154,8 +154,8 @@ async function searchBook(query) {
                 publisher: book.publisher || '情報なし',
                 description: book.description || '情報なし',
                 categories: book.categories ? book.categories.join(', ') : '情報なし', // ★追加
-                previewLink: book.previewLink || '',                                // ★追加
-                imageUrl: book.imageLinks?.thumbnail || ''
+                imageUrl: book.imageLinks?.thumbnail || '情報なし',
+                previewLink: book.previewLink || '情報なし',    // ★追
             };
             
             displayBookInfo(bookData);
@@ -180,8 +180,8 @@ function displayBookInfo(data) {
         <p><strong>出版社:</strong> ${data.publisher}</p>
         <p><strong>カテゴリ:</strong> ${data.categories}</p>
         <p><strong>ISBN:</strong> ${data.isbn}</p>
-        <p><a href="${data.previewLink}" target="_blank">Google Booksでプレビュー</a></p>
         <img src="${data.imageUrl}" alt="表紙画像" style="max-width: 150px;">
+        <p><a href="${data.previewLink}" target="_blank">Google Booksでプレビュー</a></p>
         <p style="text-align: left; font-size: 14px;">${data.description}</p>
     `;
 }
