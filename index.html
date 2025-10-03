@@ -5,13 +5,50 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>絵本管理アプリ</title>
     <style>
-        body { font-family: sans-serif; text-align: center; max-width: 600px; margin: 0 auto; }
-        video, canvas { max-width: 100%; border: 1px solid #ccc; }
-        #controls button { padding: 10px; font-size: 16px; margin: 5px; cursor: pointer; }
-        #result { margin-top: 20px; }
-        #manualInput { margin: 20px; padding: 10px; background-color: #f4f4f4; border-radius: 8px; }
-        #manualInput input { padding: 8px; font-size: 16px; width: 60%; }
-        #manualInput button { padding: 8px; }
+        /* シンプルなデザイン */
+        body { 
+            font-family: sans-serif; 
+            text-align: center; 
+            max-width: 600px; 
+            margin: 0 auto; 
+            padding: 10px;
+        }
+        video, canvas { 
+            max-width: 100%; 
+            border: 1px solid #ccc; 
+            border-radius: 8px;
+        }
+        #controls button { 
+            padding: 10px; 
+            font-size: 16px; 
+            margin: 5px; 
+            cursor: pointer;
+            border: 1px solid #ddd;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+        #result { 
+            margin-top: 20px; 
+            text-align: left;
+        }
+        #manualInput { 
+            margin: 20px; 
+            padding: 10px; 
+            background-color: #f4f4f4; 
+            border-radius: 8px; 
+        }
+        #manualInput input { 
+            padding: 8px; 
+            font-size: 16px; 
+            width: 60%; 
+        }
+        #manualInput button { 
+            padding: 8px; 
+        }
+        #bookInfo img {
+            display: block;
+            margin: 10px auto;
+        }
     </style>
 </head>
 <body>
