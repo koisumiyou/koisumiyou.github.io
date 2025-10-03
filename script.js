@@ -26,8 +26,6 @@ async function startCamera() {
 }
 startCamera(); // ページを開いたらカメラを起動
 
-// script.jsのバーコードスキャン部分を修正
-
 document.getElementById('scanBarcodeBtn').addEventListener('click', async () => {
     statusEl.textContent = 'バーコードを撮影します...';
     
@@ -57,7 +55,6 @@ document.getElementById('scanBarcodeBtn').addEventListener('click', async () => 
     }
 });
 
-// script.js の続き
 
 // 画像を撮影してOCRを実行する共通関数
 async function captureAndRecognize(lang, options = {}) {
@@ -140,7 +137,6 @@ function displayBookInfo(data) {
     `;
 }
 
-// saveToSheet関数は前のままで変更不要です！
 
 
 // GASにデータを送信してスプレッドシートに保存する関数
