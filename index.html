@@ -21,11 +21,18 @@
         <button id="scanIsbnBtn">② ISBN番号を撮影</button>
         <button id="scanTitleBtn">③ タイトルを撮影</button>
     </div>
+    
 
     <div id="result">
         <p id="status">カメラを起動してスキャン方法を選んでください。</p>
         <div id="bookInfo"></div>
     </div>
+    
+    <div id="manualInput">
+    <p>自動で読み取れない場合は、こちらに入力してください。</p>
+    <input type="text" id="manualTitle" placeholder="絵本のタイトルを入力">
+    <button id="manualSearchBtn">手動で検索</button>
+</div>
 
     <script src="https://cdn.jsdelivr.net/npm/@zxing/library@latest"></script> <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script> <script src="script.js"></script>
 </body>
