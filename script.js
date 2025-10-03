@@ -1,8 +1,8 @@
 // ----------------------------------------------------------------
 // ① 初期設定 (APIキーなどをここにまとめる)
 // ----------------------------------------------------------------
-const GAS_WEB_APP_URL = 'ここにステップ0で取得したGASのURLを貼り付け';
-const GOOGLE_BOOKS_API_KEY = 'ここにステップ0で取得したAPIキーを貼り付け';
+const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyDSW3TWi-K2iprif138XaNzF6HsP51i6hdCsx7zVhpuvEM46fI2JY9Jqfp5xhhyUC_9g/exec';
+const GOOGLE_BOOKS_API_KEY = 'AIzaSyDOu12dAbLqmR6Z5ZrHRpLVp8sa3J1uLt0';
 
 // ----------------------------------------------------------------
 // ② HTML要素の取得
@@ -47,7 +47,6 @@ async function startCamera() {
  */
 async function handleBarcodeScan() {
     statusEl.textContent = 'バーコードを撮影・解析中...';
-    // 静止画を撮影
     const context = canvas.getContext('2d');
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -63,11 +62,13 @@ async function handleBarcodeScan() {
             video.pause();
             searchBook(`isbn:${isbn}`);
         } else {
-            statusEl.textContent = '有効なバーコードではありませんでした。';
+            statusEl.textContent = '有効なバーコードではありませんでした。もう一度お試しください。';
+            video.play(); // ★追加: 失敗時にカメラを再起動
         }
     } catch (err) {
         console.error('バーコード認識エラー:', err);
-        statusEl.textContent = 'バーコードが見つかりませんでした。';
+        statusEl.textContent = 'バーコードが見つかりませんでした。もう一度お試しください。';
+        video.play(); // ★追加: 失敗時にカメラを再起動
     }
 }
 
@@ -78,16 +79,18 @@ async function handleIsbnOcr() {
     statusEl.textContent = 'ISBN番号を撮影・解析中...';
     try {
         const text = await recognizeText('eng', { tessedit_char_whitelist: '0123456789-' });
-        const isbn = text.replace(/[^0-9]/g, ''); // 数字以外を削除
+        const isbn = text.replace(/[^0-9]/g, '');
         if (isbn.length >= 10) {
             statusEl.textContent = `ISBN番号発見: ${isbn}`;
             video.pause();
             searchBook(`isbn:${isbn}`);
         } else {
-            statusEl.textContent = 'ISBN番号の読み取りに失敗しました。';
+            statusEl.textContent = 'ISBN番号の読み取りに失敗しました。もう一度お試しください。';
+            video.play(); // ★追加: 失敗時にカメラを再起動
         }
     } catch (error) {
-        statusEl.textContent = 'OCR処理中にエラーが発生しました。';
+        statusEl.textContent = 'OCR処理中にエラーが発生しました。もう一度お試しください。';
+        video.play(); // ★追加: 失敗時にカメラを再起動
     }
 }
 
@@ -103,10 +106,12 @@ async function handleTitleOcr() {
             video.pause();
             searchBook(`intitle:${title}`);
         } else {
-            statusEl.textContent = 'タイトルの読み取りに失敗しました。';
+            statusEl.textContent = 'タイトルの読み取りに失敗しました。もう一度お試しください。';
+            video.play(); // ★追加: 失敗時にカメラを再起動
         }
     } catch (error) {
-        statusEl.textContent = 'OCR処理中にエラーが発生しました。';
+        statusEl.textContent = 'OCR処理中にエラーが発生しました。もう一度お試しください。';
+        video.play(); // ★追加: 失敗時にカメラを再起動
     }
 }
 
@@ -145,27 +150,26 @@ async function searchBook(query) {
 
         if (data.items && data.items.length > 0) {
             const book = data.items[0].volumeInfo;
-            
-            // 抽出する情報に categories と previewLink を追加
             const bookData = {
                 isbn: book.industryIdentifiers?.find(i => i.type.includes('ISBN'))?.identifier || '情報なし',
                 title: book.title,
                 authors: book.authors ? book.authors.join(', ') : '情報なし',
                 publisher: book.publisher || '情報なし',
                 description: book.description || '情報なし',
-                categories: book.categories ? book.categories.join(', ') : '情報なし', // ★追加
-                imageUrl: book.imageLinks?.thumbnail || '情報なし',
-                previewLink: book.previewLink || '情報なし',    // ★追
+                categories: book.categories ? book.categories.join(', ') : '情報なし',
+                imageUrl: book.imageLinks?.thumbnail || '',
+                previewLink: book.previewLink || ''
             };
-            
             displayBookInfo(bookData);
             await saveToSheet(bookData);
         } else {
-            statusEl.textContent = '書籍情報が見つかりませんでした。';
+            statusEl.textContent = '書籍情報が見つかりませんでした。もう一度お試しください。';
+            video.play(); // ★追加: 失敗時にカメラを再起動
         }
     } catch (err) {
         console.error('API検索エラー:', err);
-        statusEl.textContent = '書籍情報の検索中にエラーが発生しました。';
+        statusEl.textContent = '書籍情報の検索中にエラーが発生しました。もう一度お試しください。';
+        video.play(); // ★追加: 失敗時にカメラを再起動
     }
 }
 
@@ -173,16 +177,15 @@ async function searchBook(query) {
  * 取得した書籍情報を画面に表示する
  */
 function displayBookInfo(data) {
-    // 表示部分にカテゴリとプレビューリンクを追加
     bookInfoEl.innerHTML = `
         <h3>${data.title}</h3>
         <p><strong>著者:</strong> ${data.authors}</p>
         <p><strong>出版社:</strong> ${data.publisher}</p>
         <p><strong>カテゴリ:</strong> ${data.categories}</p>
         <p><strong>ISBN:</strong> ${data.isbn}</p>
-        <img src="${data.imageUrl}" alt="表紙画像" style="max-width: 150px;">
+        <img src="${data.imageUrl}" alt="表紙画像">
         <p><a href="${data.previewLink}" target="_blank">Google Booksでプレビュー</a></p>
-        <p style="text-align: left; font-size: 14px;">${data.description}</p>
+        <p style="text-align: left;">${data.description}</p>
     `;
 }
 
@@ -198,8 +201,8 @@ async function saveToSheet(bookData) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(bookData)
         });
-        statusEl.textContent = '記録が完了しました！再度カメラを起動します。';
-        video.play(); // 次のスキャンのためにカメラを再開
+        statusEl.textContent = '記録が完了しました！次の本をスキャンできます。';
+        video.play();
     } catch (err) {
         console.error('保存エラー:', err);
         statusEl.textContent = 'スプレッドシートへの記録に失敗しました。';
