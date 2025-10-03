@@ -167,8 +167,10 @@ function handleManualSearch() {
 
 
 
+// script.js の中の searchBook 関数を置き換え
+
 /**
- * Google Books APIで本を検索する
+ * Google Books APIで本を検索する（複数候補を確認する強化版）
  */
 async function searchBook(query) {
     statusEl.textContent = '書籍情報を検索中...';
@@ -177,27 +179,43 @@ async function searchBook(query) {
         const data = await response.json();
 
         if (data.items && data.items.length > 0) {
-            const book = data.items[0].volumeInfo;
+            // --- ここから候補を探すロジック ---
+            let bestMatch = null;
+            // 検索結果の先頭5件、または全件をチェック
+            for (let i = 0; i < Math.min(data.items.length, 5); i++) {
+                const itemInfo = data.items[i].volumeInfo;
+                // 出版社情報が含まれているものを最優先する
+                if (itemInfo.publisher) {
+                    bestMatch = itemInfo;
+                    break; // 最適な候補が見つかったのでループを抜ける
+                }
+                // ループの最初で見つかった候補をとりあえず保持しておく
+                if (i === 0) {
+                    bestMatch = itemInfo;
+                }
+            }
+            // --- 候補を探すロジックここまで ---
+
             const bookData = {
-                isbn: book.industryIdentifiers?.find(i => i.type.includes('ISBN'))?.identifier || '情報なし',
-                title: book.title,
-                authors: book.authors ? book.authors.join(', ') : '情報なし',
-                publisher: book.publisher || '情報なし',
-                description: book.description || '情報なし',
-                categories: book.categories ? book.categories.join(', ') : '情報なし',
-                imageUrl: book.imageLinks?.thumbnail || '',
-                previewLink: book.previewLink || ''
+                isbn: bestMatch.industryIdentifiers?.find(i => i.type.includes('ISBN'))?.identifier || '情報なし',
+                title: bestMatch.title,
+                authors: bestMatch.authors ? bestMatch.authors.join(', ') : '情報なし',
+                publisher: bestMatch.publisher || '情報なし',
+                description: bestMatch.description || '情報なし',
+                categories: bestMatch.categories ? bestMatch.categories.join(', ') : '情報なし',
+                imageUrl: bestMatch.imageLinks?.thumbnail || '',
+                previewLink: bestMatch.previewLink || ''
             };
             displayBookInfo(bookData);
             await saveToSheet(bookData);
         } else {
             statusEl.textContent = '書籍情報が見つかりませんでした。もう一度お試しください。';
-            video.play(); // ★追加: 失敗時にカメラを再起動
+            video.play();
         }
     } catch (err) {
         console.error('API検索エラー:', err);
         statusEl.textContent = '書籍情報の検索中にエラーが発生しました。もう一度お試しください。';
-        video.play(); // ★追加: 失敗時にカメラを再起動
+        video.play();
     }
 }
 
