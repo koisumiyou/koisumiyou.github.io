@@ -1,8 +1,8 @@
 // ----------------------------------------------------------------
 // ① 初期設定 (APIキーなどをここにまとめる)
 // ----------------------------------------------------------------
-const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyDSW3TWi-K2iprif138XaNzF6HsP51i6hdCsx7zVhpuvEM46fI2JY9Jqfp5xhhyUC_9g/exec';
-const GOOGLE_BOOKS_API_KEY = 'AIzaSyDOu12dAbLqmR6Z5ZrHRpLVp8sa3J1uLt0';
+const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxEve9ZxMCsjlK19Gj8TwPOHJwg1C5pKMv1cXSeH2rjQabijNPV_qcZXN64MercYk5FLw/exec';
+const GOOGLE_BOOKS_API_KEY = 'AIzaSyBkeBZ-W7QtKYzbXOK-XgeXlo8XU3Fbwhk';
 
 // ----------------------------------------------------------------
 // ② HTML要素の取得
@@ -166,9 +166,6 @@ function handleManualSearch() {
 }
 
 
-
-// script.js の中の searchBook 関数を置き換え
-
 /**
  * Google Books APIで本を検索する（複数候補を確認する強化版）
  */
@@ -202,7 +199,6 @@ async function searchBook(query) {
                 authors: bestMatch.authors ? bestMatch.authors.join(', ') : '情報なし',
                 publisher: bestMatch.publisher || '情報なし',
                 description: bestMatch.description || '情報なし',
-                categories: bestMatch.categories ? bestMatch.categories.join(', ') : '情報なし',
                 imageUrl: bestMatch.imageLinks?.thumbnail || '',
                 previewLink: bestMatch.previewLink || ''
             };
@@ -227,7 +223,6 @@ function displayBookInfo(data) {
         <h3>${data.title}</h3>
         <p><strong>著者:</strong> ${data.authors}</p>
         <p><strong>出版社:</strong> ${data.publisher}</p>
-        <p><strong>カテゴリ:</strong> ${data.categories}</p>
         <p><strong>ISBN:</strong> ${data.isbn}</p>
         <img src="${data.imageUrl}" alt="表紙画像">
         <p><a href="${data.previewLink}" target="_blank">Google Booksでプレビュー</a></p>
